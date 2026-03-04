@@ -2,6 +2,10 @@ package project.controller;
 
 import project.entity.Customer;
 import project.service.CustomerService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,31 +17,39 @@ public class CustomerController {
 
     private final CustomerService customerService;
 
-    // Конструктор для внедрения зависимости
     public CustomerController(CustomerService customerService) {
         this.customerService = customerService;
     }
 
     /**
-     * Получить всех клиентов
+     * Получить всех клиентов с пагинацией, сортировкой и фильтрацией
      * Доступно: USER и ADMIN
-     * GET /api/v1/customers/all
+     *
+     * Примеры запросов:
+     * - /api/v1/customers?page=0&size=10&sort=lastName,asc
+     * - /api/v1/customers?firstName=Иван&email=@mail.ru
+     * - /api/v1/customers?lastName=Петров&page=1&size=5&sort=id,desc
      */
-    @GetMapping("/all")
+    @GetMapping
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public List<Customer> readCustomerAll() {
-        return customerService.readCustomerAll();
+    public Page<Customer> getAllCustomers(
+            @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable,
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String email) {
+
+        return customerService.findAllWithFilters(firstName, lastName, email, pageable);
     }
 
     /**
      * Получить клиента по ID
      * Доступно: USER и ADMIN
-     * GET /api/v1/customers/find={id}
+     * GET /api/v1/customers/{id}
      */
-    @GetMapping("/find={id}")
+    @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public Customer readCustomer(@PathVariable Long id) {
-        return customerService.readCustomer(id);
+    public Customer getCustomerById(@PathVariable Long id) {
+        return customerService.findById(id);
     }
 
     /**
